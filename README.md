@@ -81,9 +81,6 @@ Mapa de Calor de Vendas:
 
 Previsão de Vendas Futura:
 
-📄 Licença
-Este projeto está licenciado sob a licença MIT. Consulte o arquivo LICENSE para mais detalhes.
-
 🤝 Contribuições
 Contribuições são bem-vindas! Siga os passos abaixo para contribuir:
 
