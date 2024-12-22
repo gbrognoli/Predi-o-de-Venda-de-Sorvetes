@@ -22,7 +22,7 @@ plaintext
 Copiar código
 .
 ├── data/
-│   ├── sorvete_vendas.xlsx          # Arquivo de dados de entrada
+│   ├── base de dados                # Arquivo de dados de entrada
 │   ├── previsoes_futuras.csv        # Arquivo com previsões futuras
 ├── visuals/
 │   ├── presentation_vendas_sorvetes.html  # Apresentação interativa
