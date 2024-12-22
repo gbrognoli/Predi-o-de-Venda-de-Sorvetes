@@ -9,20 +9,28 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-# ======================== Carregar os Dados ========================
-# Carregar dados do arquivo Excel
-file_path = 'sorvete c temperatura.xlsx'
-data = pd.ExcelFile(file_path)
-df = data.parse('Plan1')
+# ======================== Gerar Base de Dados ========================
 
-# Criar a coluna Total_Vendas (soma das vendas por temperatura)
-df['Total_Vendas'] = df.iloc[:, 1:].sum(axis=1)
+# Criar 100 dias de dados simulados
+np.random.seed(42)
+dias = np.arange(1, 101)  # Dias de 1 a 100
+temperaturas = np.random.uniform(15, 35, size=100)  # Temperaturas entre 15°C e 35°C
+vendas = (temperaturas * np.random.uniform(20, 30, size=100) + np.random.normal(0, 50, size=100)).astype(int)
+
+# Simular vendas por 10 pontos de venda
+pontos_de_venda = [f"V{i}" for i in range(1, 11)]
+vendas_por_ponto = {ponto: (vendas + np.random.normal(0, 20, size=100)).astype(int) for ponto in pontos_de_venda}
+
+# Criar DataFrame final
+dados = pd.DataFrame({'Dia': dias, 'Temp': temperaturas, **vendas_por_ponto})
 
 # ======================== Análise Exploratória ========================
 
 # 1. Relação entre Temperatura e Vendas de Sorvetes
+dados['Total_Vendas'] = dados.iloc[:, 2:].sum(axis=1)
+
 plt.figure(figsize=(10, 6))
-plt.scatter(df['Temp'], df['Total_Vendas'], alpha=0.7)
+plt.scatter(dados['Temp'], dados['Total_Vendas'], alpha=0.7)
 plt.title('Relação entre Temperatura e Vendas de Sorvetes')
 plt.xlabel('Temperatura (°C)')
 plt.ylabel('Total de Vendas')
@@ -30,80 +38,34 @@ plt.grid(True)
 plt.show()
 
 # 2. Resumo das Vendas por Temperatura
-df_summary = df[['Temp', 'Total_Vendas']]
+df_summary = dados[['Temp', 'Total_Vendas']]
 
 # 3. Mapa de Calor das Vendas de Sorvetes
-vendas_data = df.iloc[:, 1:-1]
+vendas_data = dados.iloc[:, 2:-1]
 plt.figure(figsize=(12, 8))
-sns.heatmap(vendas_data, annot=True, fmt=".0f", cmap="YlGnBu", cbar=True, linewidths=.5)
+sns.heatmap(vendas_data, annot=False, fmt=".0f", cmap="YlGnBu", cbar=True, linewidths=.5)
 plt.title('Mapa de Calor das Vendas de Sorvetes')
 plt.xlabel('Pontos de Venda')
-plt.ylabel('Temperatura (°C)')
+plt.ylabel('Dias')
 plt.show()
 
 # 4. Vendas por Ponto de Venda e Temperatura
-vendas_por_ponto = df.set_index('Temp').iloc[:, :-1].transpose()
+vendas_por_ponto = dados.set_index('Dia').iloc[:, 1:-1].transpose()
 plt.figure(figsize=(12, 8))
 for ponto in vendas_por_ponto.columns:
-    plt.plot(vendas_por_ponto.index, vendas_por_ponto[ponto], marker='o', label=f'Temp {ponto}°C')
+    plt.plot(vendas_por_ponto.index, vendas_por_ponto[ponto], marker='o', label=f'Dia {ponto}')
 plt.title('Vendas por Ponto de Venda e Temperatura')
 plt.xlabel('Pontos de Venda')
 plt.ylabel('Vendas')
-plt.legend(title='Temperatura (°C)')
+plt.legend(title='Dia')
 plt.grid(True)
-plt.show()
-
-# 5. Top-Performing Sales Points
-sales_by_point = df.iloc[:, 1:-1].sum()
-top_sales_points = sales_by_point.sort_values(ascending=False)
-
-plt.figure(figsize=(12, 8))
-top_sales_points.plot(kind='bar', color='skyblue', alpha=0.8)
-plt.title('Top-Performing Sales Points')
-plt.xlabel('Sales Points')
-plt.ylabel('Total Sales')
-plt.grid(axis='y')
-plt.show()
-
-# 6. Low-Performing Sales Points
-low_sales_points = sales_by_point.sort_values(ascending=True)
-plt.figure(figsize=(12, 8))
-low_sales_points.plot(kind='bar', color='salmon', alpha=0.8)
-plt.title('Low-Performing Sales Points')
-plt.xlabel('Sales Points')
-plt.ylabel('Total Sales')
-plt.grid(axis='y')
-plt.show()
-
-# 7. Vendas a 30°C
-hot_temp_sales = df[df['Temp'] == 30].iloc[:, 1:-1].sum()
-plt.figure(figsize=(12, 8))
-hot_temp_sales.plot(kind='bar', color='orange', alpha=0.8)
-plt.title('Vendas a 30°C por Ponto de Venda')
-plt.xlabel('Pontos de Venda')
-plt.ylabel('Total de Vendas a 30°C')
-plt.grid(axis='y')
-plt.show()
-
-# 8. Vendas a 15°C
-sales_at_15 = df[df['Temp'] == 15].iloc[:, 1:-1].sum()
-sorted_sales_at_15 = sales_at_15.sort_values(ascending=False)
-plt.figure(figsize=(12, 8))
-sorted_sales_at_15.plot(kind='bar', color='teal', alpha=0.8)
-plt.title('Vendas Ordenadas a 15°C por Ponto de Venda')
-plt.xlabel('Pontos de Venda')
-plt.ylabel('Total de Vendas a 15°C')
-plt.grid(axis='y')
 plt.show()
 
 # ======================== Machine Learning ========================
 
 # Ajustar X e y para garantir alinhamento correto
-X = pd.DataFrame({'Temp': df['Temp'].repeat(df.iloc[:, 1:-1].shape[1])})
-y = df.iloc[:, 1:-1].values.flatten()
-
-# Verificar os tamanhos ajustados
-print(f"X shape: {X.shape}, y shape: {y.shape}")
+X = pd.DataFrame({'Temp': dados['Temp'].repeat(len(pontos_de_venda))})
+y = dados.iloc[:, 2:-1].values.flatten()
 
 # Dividir os dados em treinamento e teste
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -159,16 +121,12 @@ fig = make_subplots(
 )
 
 # Adicionar gráficos ao subplot
-fig.add_trace(go.Scatter(x=df['Temp'], y=df['Total_Vendas'], mode='markers+lines', name='Vendas Totais'), row=1, col=1)
-fig.add_trace(go.Bar(x=df['Temp'], y=df['Total_Vendas'], name='Vendas por Temperatura'), row=1, col=2)
-heatmap_data = go.Heatmap(z=vendas_data.values, x=vendas_data.columns, y=df['Temp'], colorscale='Viridis')
+fig.add_trace(go.Scatter(x=dados['Temp'], y=dados['Total_Vendas'], mode='markers+lines', name='Vendas Totais'), row=1, col=1)
+fig.add_trace(go.Bar(x=dados['Temp'], y=dados['Total_Vendas'], name='Vendas por Temperatura'), row=1, col=2)
+heatmap_data = go.Heatmap(z=vendas_data.values, x=vendas_data.columns, y=dados['Dia'], colorscale='Viridis')
 fig.add_trace(heatmap_data, row=2, col=1)
 for ponto in vendas_por_ponto.columns:
-    fig.add_trace(go.Scatter(x=vendas_por_ponto.index, y=vendas_por_ponto[ponto], mode='lines+markers', name=f'Temp {ponto}°C'), row=2, col=2)
-fig.add_trace(go.Bar(x=top_sales_points.index, y=top_sales_points.values, name='Top Sales Points'), row=3, col=1)
-fig.add_trace(go.Bar(x=low_sales_points.index, y=low_sales_points.values, name='Low Sales Points'), row=3, col=2)
-fig.add_trace(go.Bar(x=hot_temp_sales.index, y=hot_temp_sales.values, name='Vendas a 30°C'), row=4, col=1)
-fig.add_trace(go.Bar(x=sorted_sales_at_15.index, y=sorted_sales_at_15.values, name='Vendas a 15°C'), row=4, col=2)
+    fig.add_trace(go.Scatter(x=vendas_por_ponto.index, y=vendas_por_ponto[ponto], mode='lines+markers', name=f'Dia {ponto}'), row=2, col=2)
 
 # Layout geral
 fig.update_layout(height=1000, width=1500, title_text="Análise de Vendas de Sorvetes: Apresentação Completa", showlegend=False)
@@ -176,3 +134,4 @@ fig.update_layout(height=1000, width=1500, title_text="Análise de Vendas de Sor
 # Salvar apresentação como HTML
 presentation_path = "presentation_vendas_sorvetes.html"
 fig.write_html(presentation_path)
+
